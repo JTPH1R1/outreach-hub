@@ -1,6 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { supabase } from './lib/supabase';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(e: Error) { return { error: e.message }; }
+  render() {
+    if (this.state.error) return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="max-w-md w-full bg-white rounded-xl shadow p-6 text-center">
+          <p className="text-2xl mb-3">⚠️</p>
+          <p className="font-semibold text-gray-800 mb-2">App failed to start</p>
+          <p className="text-sm text-gray-500 bg-gray-50 rounded p-3 text-left font-mono break-all">{this.state.error}</p>
+          <p className="text-xs text-gray-400 mt-4">Check Cloudflare → Settings → Environment variables and make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set, then redeploy.</p>
+        </div>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 import { StoreProvider } from './hooks/useStore';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
@@ -45,20 +63,22 @@ export default function App() {
 
   // Logged in — full app
   return (
-    <StoreProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/"                    element={<Dashboard />} />
-            <Route path="/documents"           element={<Documents />} />
-            <Route path="/documents/:id"       element={<DocumentView />} />
-            <Route path="/documents/:id/edit"  element={<DocumentEditor />} />
-            <Route path="/clients"             element={<Clients />} />
-            <Route path="/schedule"            element={<Schedule />} />
-            <Route path="/settings"            element={<Settings />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/"                    element={<Dashboard />} />
+              <Route path="/documents"           element={<Documents />} />
+              <Route path="/documents/:id"       element={<DocumentView />} />
+              <Route path="/documents/:id/edit"  element={<DocumentEditor />} />
+              <Route path="/clients"             element={<Clients />} />
+              <Route path="/schedule"            element={<Schedule />} />
+              <Route path="/settings"            element={<Settings />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }

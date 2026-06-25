@@ -1,5 +1,5 @@
 export type DocumentType = 'quotation' | 'invoice' | 'receipt';
-export type DocumentStatus = 'draft' | 'sent' | 'accepted' | 'paid' | 'overdue' | 'cancelled';
+export type DocumentStatus = 'draft' | 'sent' | 'accepted' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
 export interface Business {
@@ -67,6 +67,7 @@ export interface Document {
   total: number;
   notes: string;
   termsAndConditions: string;
+  amountPaid: number;
   paymentMethod: string;
   paymentDate: string;
   paymentReference: string;

@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Edit, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Download, Edit, CreditCard, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
-import { formatCurrency, formatDate, STATUS_COLORS, STATUS_LABELS } from '../lib/utils';
+import { formatCurrency, formatDate, STATUS_COLORS, STATUS_LABELS, today } from '../lib/utils';
 import logoWhite from '../assets/logo-white.png';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -110,7 +110,18 @@ function DocumentTemplate({ docId }: { docId: string }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 4px', fontSize: 17, fontWeight: 800, color: '#0F0F0F' }}>
               <span>TOTAL</span><span style={{ color: '#CC1F27' }}>{formatCurrency(doc.total, sym)}</span>
             </div>
-            {doc.type === 'receipt' && (
+            {/* Partial payment breakdown */}
+            {(doc.amountPaid > 0 && doc.status === 'partial') && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, color: '#16A34A', borderTop: '1px solid #F0F0F0' }}>
+                  <span>Amount Paid</span><span style={{ fontWeight: 600 }}>-{formatCurrency(doc.amountPaid, sym)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14, fontWeight: 700, color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, marginTop: 6 }}>
+                  <span>BALANCE DUE</span><span>{formatCurrency(doc.total - doc.amountPaid, sym)}</span>
+                </div>
+              </>
+            )}
+            {(doc.status === 'paid' || doc.type === 'receipt') && (
               <div style={{ marginTop: 8, background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: '#16A34A', fontSize: 13, fontWeight: 600 }}>✓ PAYMENT RECEIVED IN FULL</span>
               </div>
@@ -183,13 +194,45 @@ export default function DocumentView() {
   const navigate = useNavigate();
   const { data, getDocument, updateDocument } = useStore();
   const templateRef = useRef<HTMLDivElement>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [payAmount, setPayAmount]     = useState('');
+  const [payMethod, setPayMethod]     = useState('');
+  const [payDate, setPayDate]         = useState(today());
+  const [payRef, setPayRef]           = useState('');
 
   const docMaybe = getDocument(id!);
   if (!docMaybe) return <div className="p-8 text-gray-500">Document not found.</div>;
   const doc = docMaybe;
 
-  const client = data.clients.find(c => c.id === doc.clientId);
-  const sym = data.business.currencySymbol;
+  const client   = data.clients.find(c => c.id === doc.clientId);
+  const sym      = data.business.currencySymbol;
+  const balanceDue = Math.max(0, doc.total - (doc.amountPaid || 0));
+
+  function openPaymentPanel() {
+    setPayAmount(doc.amountPaid > 0 ? String(doc.amountPaid) : String(doc.total));
+    setPayMethod(doc.paymentMethod || '');
+    setPayDate(doc.paymentDate || today());
+    setPayRef(doc.paymentReference || '');
+    setShowPayment(true);
+  }
+
+  function recordPayment() {
+    const paid = parseFloat(payAmount) || 0;
+    const newStatus = paid >= doc.total ? 'paid' : paid > 0 ? 'partial' : doc.status;
+    updateDocument(doc.id, {
+      amountPaid: paid,
+      status: newStatus,
+      paymentMethod: payMethod,
+      paymentDate: payDate,
+      paymentReference: payRef,
+    });
+    setShowPayment(false);
+  }
+
+  function clearPayment() {
+    updateDocument(doc.id, { amountPaid: 0, status: 'sent', paymentMethod: '', paymentDate: '', paymentReference: '' });
+    setShowPayment(false);
+  }
 
   async function downloadPDF() {
     const el = document.getElementById('document-template');
@@ -203,38 +246,104 @@ export default function DocumentView() {
     pdf.save(`${doc.number}.pdf`);
   }
 
-  function markAsPaid() {
-    updateDocument(doc.id, { status: 'paid', paymentDate: doc.paymentDate || new Date().toISOString().split('T')[0] });
-  }
-
   const typeLabel = doc.type === 'quotation' ? 'Quotation' : doc.type === 'invoice' ? 'Invoice' : 'Receipt';
+  const canRecordPayment = doc.type !== 'quotation' && doc.status !== 'cancelled';
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Action bar */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between no-print">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="btn-ghost"><ArrowLeft size={16} /></button>
-          <div>
-            <p className="text-sm font-bold text-gray-900">{doc.number}</p>
-            <p className="text-xs text-gray-400">{typeLabel} · {client?.name || 'No client'}</p>
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 lg:px-6 py-3 flex items-center justify-between no-print">
+        <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+          <button onClick={() => navigate(-1)} className="btn-ghost shrink-0"><ArrowLeft size={16} /></button>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate">{doc.number}</p>
+            <p className="text-xs text-gray-400 truncate">{typeLabel} · {client?.name || 'No client'}</p>
           </div>
-          <span className={`badge ${STATUS_COLORS[doc.status]}`}>{STATUS_LABELS[doc.status]}</span>
+          <span className={`badge shrink-0 ${STATUS_COLORS[doc.status]}`}>{STATUS_LABELS[doc.status]}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {doc.status !== 'paid' && doc.type === 'invoice' && (
-            <button onClick={markAsPaid} className="btn-secondary gap-2 text-green-700 border-green-200 hover:bg-green-50">
-              <CheckCircle size={15} /> Mark Paid
+        <div className="flex items-center gap-2 shrink-0">
+          {canRecordPayment && (
+            <button onClick={openPaymentPanel} className="btn-secondary gap-1.5 text-green-700 border-green-200 hover:bg-green-50">
+              <CreditCard size={15} /> <span className="hidden sm:inline">Payment</span>
             </button>
           )}
-          <Link to={`/documents/${doc.id}/edit`} className="btn-secondary gap-2">
-            <Edit size={15} /> Edit
+          <Link to={`/documents/${doc.id}/edit`} className="btn-secondary gap-1.5">
+            <Edit size={15} /> <span className="hidden sm:inline">Edit</span>
           </Link>
-          <button onClick={downloadPDF} className="btn-primary gap-2">
-            <Download size={15} /> Download PDF
+          <button onClick={downloadPDF} className="btn-primary gap-1.5">
+            <Download size={15} /> <span className="hidden sm:inline">PDF</span>
           </button>
         </div>
       </div>
+
+      {/* Payment panel */}
+      {showPayment && (
+        <div className="no-print bg-white border-b border-gray-100 px-4 lg:px-6 py-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 text-sm">Record Payment</h3>
+              <button onClick={() => setShowPayment(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-0.5">Total</p>
+                <p className="font-bold text-gray-900 text-sm">{formatCurrency(doc.total, sym)}</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-0.5">Paid</p>
+                <p className="font-bold text-green-700 text-sm">{formatCurrency(doc.amountPaid || 0, sym)}</p>
+              </div>
+              <div className={`rounded-lg p-3 ${balanceDue > 0 ? 'bg-amber-50' : 'bg-green-50'}`}>
+                <p className="text-xs text-gray-500 mb-0.5">Balance Due</p>
+                <p className={`font-bold text-sm ${balanceDue > 0 ? 'text-amber-700' : 'text-green-700'}`}>{formatCurrency(balanceDue, sym)}</p>
+              </div>
+            </div>
+
+            {/* Quick set buttons */}
+            <div className="flex gap-2 mb-3">
+              <button onClick={() => setPayAmount(String(doc.total))} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium">Full amount</button>
+              <button onClick={() => setPayAmount(String(Math.round(doc.total / 2)))} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium">Half</button>
+              <button onClick={() => setPayAmount(String(balanceDue))} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium">Balance only</button>
+            </div>
+
+            {/* Form */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="col-span-2 lg:col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Amount Paid ({sym})</label>
+                <input type="number" min="0" step="0.01" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="input text-sm" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+                <select value={payMethod} onChange={e => setPayMethod(e.target.value)} className="input text-sm">
+                  <option value="">Select…</option>
+                  <option>Mobile Money</option>
+                  <option>Bank Transfer</option>
+                  <option>Cash</option>
+                  <option>Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Payment Date</label>
+                <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className="input text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reference / Note</label>
+                <input type="text" value={payRef} onChange={e => setPayRef(e.target.value)} className="input text-sm" placeholder="e.g. Mpesa ref" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <button onClick={clearPayment} className="text-xs text-red-500 hover:underline">Clear payment record</button>
+              <div className="flex gap-2">
+                <button onClick={() => setShowPayment(false)} className="btn-ghost text-sm">Cancel</button>
+                <button onClick={recordPayment} className="btn-primary text-sm">Save Payment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Document preview */}
       <div className="py-8 flex justify-center">

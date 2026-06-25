@@ -39,6 +39,7 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
   sent: 'Sent',
   accepted: 'Accepted',
   paid: 'Paid',
+  partial: 'Partly Paid',
   overdue: 'Overdue',
   cancelled: 'Cancelled',
 };
@@ -48,6 +49,7 @@ export const STATUS_COLORS: Record<DocumentStatus, string> = {
   sent: 'bg-blue-100 text-blue-700',
   accepted: 'bg-purple-100 text-purple-700',
   paid: 'bg-green-100 text-green-700',
+  partial: 'bg-amber-100 text-amber-700',
   overdue: 'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-400',
 };

@@ -2,7 +2,7 @@ import { AppData, Business } from '../types';
 
 const STORAGE_KEY = 'omg_hub_v1';
 
-const defaultBusiness: Business = {
+export const defaultBusiness: Business = {
   name: 'Outreach Media Group',
   tagline: 'Media Production & Image Consultancy',
   email: 'info@outreachmediagroup.com',

@@ -345,22 +345,27 @@ export default function DocumentView() {
         </div>
       )}
 
-      {/* Document preview */}
-      <div className="py-8 flex justify-center">
-        <div className="relative" ref={templateRef}>
-          <DocumentTemplate docId={id!} />
+      {/* Document preview — horizontally scrollable on mobile so the 794px template doesn't overflow the layout */}
+      <div className="py-4 lg:py-8 overflow-x-auto pb-24">
+        <div className="min-w-[794px] flex justify-center">
+          <div className="relative" ref={templateRef}>
+            <DocumentTemplate docId={id!} />
+          </div>
         </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="fixed bottom-0 left-60 right-0 bg-white border-t border-gray-100 px-6 py-3 flex items-center justify-between no-print">
-        <div className="flex items-center gap-6 text-sm">
-          <span className="text-gray-500">Subtotal <strong className="text-gray-800">{formatCurrency(doc.subtotal, sym)}</strong></span>
-          {doc.vatAmount > 0 && <span className="text-gray-500">VAT <strong className="text-gray-800">{formatCurrency(doc.vatAmount, sym)}</strong></span>}
-          <span className="text-gray-900 font-bold text-base">Total: <span className="text-brand-red">{formatCurrency(doc.total, sym)}</span></span>
+      {/* Summary strip — left-0 mobile / left-60 desktop (matches sidebar width) */}
+      <div className="fixed bottom-0 left-0 lg:left-60 right-0 z-10 bg-white border-t border-gray-100 px-4 lg:px-6 py-3 flex items-center justify-between no-print">
+        <div className="flex items-center gap-3 lg:gap-6 text-sm min-w-0">
+          <span className="text-gray-500 hidden sm:inline">Subtotal <strong className="text-gray-800">{formatCurrency(doc.subtotal, sym)}</strong></span>
+          {doc.vatAmount > 0 && <span className="text-gray-500 hidden sm:inline">VAT <strong className="text-gray-800">{formatCurrency(doc.vatAmount, sym)}</strong></span>}
+          <span className="text-gray-900 font-bold">Total: <span className="text-brand-red">{formatCurrency(doc.total, sym)}</span></span>
+          {doc.status === 'partial' && doc.amountPaid > 0 && (
+            <span className="text-amber-600 font-medium text-xs">Balance: {formatCurrency(doc.total - doc.amountPaid, sym)}</span>
+          )}
         </div>
-        <button onClick={downloadPDF} className="btn-primary gap-2">
-          <Download size={15} /> Save as PDF
+        <button onClick={downloadPDF} className="btn-primary gap-2 shrink-0">
+          <Download size={15} /> <span className="hidden sm:inline">Save as</span> PDF
         </button>
       </div>
     </div>

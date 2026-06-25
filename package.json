@@ -19,7 +19,8 @@
     "html2canvas": "^1.4.1",
     "clsx": "^2.1.1",
     "react-hook-form": "^7.53.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "@types/react": "^18.3.5",

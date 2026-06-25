@@ -17,7 +17,7 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-lg lg:text-2xl font-bold text-gray-900 mt-1 break-all">{value}</p>
           {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
         </div>
         <div className={`p-2.5 rounded-xl ${color}`}>
@@ -89,24 +89,24 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Welcome back — here's your business overview</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Welcome back — here's your business overview</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard label="Total Revenue" value={formatCurrency(stats.totalRevenue, sym)} sub={`${sym} ${(stats.monthRevenue/100).toLocaleString()} this month`} icon={TrendingUp} color="bg-brand-red" />
         <StatCard label="Pending Payment" value={formatCurrency(stats.totalPending, sym)} sub={`${stats.pending} document${stats.pending !== 1 ? 's' : ''}`} icon={Clock} color="bg-amber-500" />
         <StatCard label="Paid Invoices" value={String(stats.paid)} sub="All time" icon={CheckCircle} color="bg-green-500" />
         <StatCard label="Overdue" value={String(stats.overdue)} sub={stats.overdue > 0 ? 'Needs attention' : 'All clear'} icon={AlertCircle} color={stats.overdue > 0 ? 'bg-red-500' : 'bg-gray-400'} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
         {/* Secondary stats */}
-        <div className="grid grid-cols-2 gap-4 lg:col-span-1 lg:grid-cols-1 content-start">
+        <div className="grid grid-cols-2 gap-3 lg:col-span-1 lg:grid-cols-1 content-start">
           <div className="card p-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-blue-500"><Users size={18} className="text-white" /></div>
@@ -156,8 +156,8 @@ export default function Dashboard() {
           {monthlyRevenue.every(m => m.revenue === 0) ? (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">No paid invoices yet</div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={monthlyRevenue} barSize={28}>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={monthlyRevenue} barSize={22}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false}
@@ -173,7 +173,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
         {/* Recent documents */}
         <div className="card">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">

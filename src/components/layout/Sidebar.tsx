@@ -1,44 +1,57 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Users, Calendar, Settings,
-  Receipt, Plus, ChevronDown
+  Plus, ChevronDown, X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '../../hooks/useStore';
 import logoWhite from '../../assets/logo-white.png';
 
 const nav = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/documents', icon: FileText, label: 'Documents' },
-  { to: '/clients', icon: Users, label: 'Clients' },
-  { to: '/schedule', icon: Calendar, label: 'Schedule' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/documents', icon: FileText,         label: 'Documents' },
+  { to: '/clients',   icon: Users,            label: 'Clients' },
+  { to: '/schedule',  icon: Calendar,         label: 'Schedule' },
+  { to: '/settings',  icon: Settings,         label: 'Settings' },
 ];
 
-export default function Sidebar() {
+interface Props {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: Props) {
   const { addDocument, data } = useStore();
   const navigate = useNavigate();
   const [showNew, setShowNew] = useState(false);
 
   function handleNew(type: 'quotation' | 'invoice' | 'receipt') {
     setShowNew(false);
+    onClose?.();
     if (data.clients.length === 0) {
       navigate('/clients?new=1');
       return;
     }
-    const firstClient = data.clients[0];
-    const doc = addDocument(type, firstClient.id);
+    const doc = addDocument(type, data.clients[0].id);
     navigate(`/documents/${doc.id}/edit`);
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-brand-black flex flex-col fixed left-0 top-0 bottom-0 z-30">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/10">
-        <img src={logoWhite} alt="Outreach Media Group" className="h-10 object-contain" />
+    <div className="w-60 h-full min-h-screen bg-brand-black flex flex-col">
+
+      {/* Logo + close button */}
+      <div className="flex items-center justify-between px-4 py-5 border-b border-white/10">
+        <img src={logoWhite} alt="Outreach Media Group" className="h-9 object-contain" />
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden text-white/50 hover:text-white p-1"
+          aria-label="Close menu"
+        >
+          <X size={18} />
+        </button>
       </div>
 
-      {/* New Document */}
+      {/* New Document dropdown */}
       <div className="px-3 pt-4 pb-2 relative">
         <button
           onClick={() => setShowNew(v => !v)}
@@ -62,13 +75,14 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Nav */}
+      {/* Nav links */}
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {nav.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
@@ -88,6 +102,6 @@ export default function Sidebar() {
         <p className="text-xs text-gray-500">OMG Hub v1.0</p>
         <p className="text-xs text-gray-600 mt-0.5">Outreach Media Group</p>
       </div>
-    </aside>
+    </div>
   );
 }
